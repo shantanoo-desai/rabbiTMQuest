@@ -1,0 +1,55 @@
+version: "3"
+
+services: 
+    rabbitmq:
+        image: rabbitmq:3.8-management
+        container_name: rabbitmq
+        hostname: "rabbITMQ-machine"
+        env_file: prototype.env
+        networks:
+            - "iotstack"
+        ports: 
+            - "1883:1883" # MQTT Port
+            - "5672:5672" # AMQP Port
+            - "15672:15672" # Management UI HTTP
+        volumes: 
+            - ./rabbitmq/plugins/enabled_plugins:/etc/rabbitmq/enabled_plugins
+            - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+            - rabbitmq_data:/var/lib/rabbitmq
+        
+    questdb:
+        image: questdb/questdb:5.0.3
+        container_name: questdb
+        networks: 
+            - "iotstack"
+        ports:
+            - "9000:9000" # UI + REST APIs
+        expose: 
+            - 9009 # Don't Publish Influx Line Protocol Port 
+        volumes: 
+            - questdb_data:/root/.questdb/db
+    
+    telegraf:
+        image: telegraf:1.18
+        container_name: telegraf
+        env_file: prototype.env
+        restart: on-failure # required till user credentials created
+        links: 
+            - questdb
+            - rabbitmq
+        depends_on: 
+            # do not start before RabbitMQ, QuestDB
+            - rabbitmq
+            - questdb
+        networks: 
+            - "iotstack"
+        volumes: 
+            - ./telegraf/telegraf.toml:/etc/telegraf/telegraf.conf:ro
+
+volumes: 
+    rabbitmq_data:
+    questdb_data:
+
+networks:
+    iotstack:
+        external: true
