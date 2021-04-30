@@ -1,0 +1,77 @@
+[agent]
+    interval = "20s"
+    round_interval = true
+    metric_batch_size = 1000
+    metric_buffer_limit = 10000
+    collection_jitter = "0s"
+    flush_interval = "10s"
+    flush_jitter = "0s"
+    precision = ""
+    debug = true
+    quiet = false
+    hostname = ""
+    omit_hostname = true
+
+## INPUT PLUGINS
+
+# Collect RabbitMQ Metrics
+[[inputs.rabbitmq]]
+
+    url = "http://rabbitmq:15672"
+    username = "${TELEGRAF_AMQP_BROKER_USERNAME}"
+    password = "${TELEGRAF_AMQP_BROKER_PASSWORD}"
+
+# MQTT => AMQP Bridging
+[[inputs.amqp_consumer]]
+
+  ## Brokers to consume from.
+  brokers = ["amqp://rabbitmq:5672/"]
+
+  # Authentication credentials for the PLAIN auth_method.
+  username = "${TELEGRAF_AMQP_BROKER_USERNAME}"
+  password = "${TELEGRAF_AMQP_BROKER_PASSWORD}"
+
+  ## Name of the exchange to declare.  If unset, no exchange will be declared.
+  exchange = "amq.topic"
+
+  ## Exchange type; common types are "direct", "fanout", "topic", "header", "x-consistent-hash".
+  exchange_type = "topic"
+
+
+  ## Exchange durability can be either "transient" or "durable".
+  exchange_durability = "durable"
+
+  ## AMQP queue name
+  queue = ""
+
+  ## AMQP queue durability can be "transient" or "durable".
+  queue_durability = "durable"
+
+  ## If true, queue will be passively declared.
+  # queue_passive = false
+
+  ## A binding between the exchange and queue using this binding key is
+  ## created.  If unset, no binding is created.
+
+
+  ## ADAPT CONFIGURATION BELOW ACCORDINGLY
+
+  binding_key = "IOT.#"
+  
+  ## Data format to consume.
+  data_format = "influx"
+
+  ## If Payload is JSON use
+  # data_format = "json"
+
+  ## Refer to Telegraf documentation on how to Parse incoming JSON
+
+
+## NOTE: add additional [[inputs.amqp_consumer]] table if
+## you have additional services that produce AMQP messages
+## and need to be consumed into InfluxDB
+
+## OUTPUT PLUGINS
+[[outputs.socket_writer]]
+  # InfluxDB Line Protocol Insert into QuestDB
+  address = "tcp://questdb:9009"
